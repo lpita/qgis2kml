@@ -1,0 +1,30 @@
+; the next section is mandatory
+[general]
+name=ogr2kml
+qgisMinimumVersion=1.8
+description=This plugin convert a vector file loaded into QGIS to kml with style
+category=Vector
+version=0.1
+; end of mandatory metadata
+
+; start of optional metadata
+changelog=0.1 first version
+
+; tags are in comma separated value format, spaces are allowed
+tags=vector,kml
+
+; these metadata can be empty
+; in a future version of the web application it will
+; be probably possible to create a project on redmine
+; if they are not filled
+;homepage=http://www.itopen.it
+;tracker=http://bugs.itopen.it
+repository=https://github.com/lucadelu/qgis2kml
+icon=icon.png
+
+; experimental flag
+experimental=True
+
+; deprecated flag (applies to the whole plugin and not only to the uploaded version)
+deprecated=False
+
