@@ -25,9 +25,9 @@ from qgis.core import *
 import os, sys
 import os2emxpath
 
-from ogr2funz import *
+from qgis2funz import *
 
-class ogr2kmlClassStyle:
+class qgis2kmlClassStyle:
     """A class to create style of layer and the relative code"""
     def __init__(self,
                   layer

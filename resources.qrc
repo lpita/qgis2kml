@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="/plugins/ogr2kml" >
+  <qresource prefix="/plugins/qgis2kml" >
      <file>icon.png</file>
   </qresource>
 </RCC>

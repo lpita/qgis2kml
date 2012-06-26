@@ -1,9 +1,9 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
-from ogr2kmldialog import ogr2kmlDialog
-from ogr2kmlStyle import ogr2kmlClassStyle
-from ogr2funz import *
+from qgis2kmldialog import qgis2kmlDialog
+from qgis2kmlStyle import qgis2kmlClassStyle
+from qgis2funz import *
 # initialize Qt resources from file resouces.py
 import resources_rc
 import os
@@ -14,29 +14,29 @@ sys.path.append( os.path.abspath(currentPath))
 
 import simplekml
 
-class OGR2KML:
-    MSG_BOX_TITLE = "ogr2kml Plugin Warning"
+class QGIS2KML:
+    MSG_BOX_TITLE = "qgis2kml Plugin Warning"
     def __init__(self, iface):
         # save reference to the QGIS interface
         self.iface = iface
 
     def initGui(self):
         # create action that will start plugin configuration
-        self.action = QAction(QIcon(":/plugins/ogr2kml/icon.png"), "ogr2kml", self.iface.mainWindow())
-        self.action.setWhatsThis("Configuration for ogr2kml plugin")
+        self.action = QAction(QIcon(":/plugins/qgis2kml/icon.png"), "qgis2kml", self.iface.mainWindow())
+        self.action.setWhatsThis("Configuration for qgis2kml plugin")
         #self.action.setStatusTip("This is status tip")
         QObject.connect(self.action, SIGNAL("triggered()"), self.run)
 
         # add toolbar button and menu item
         self.iface.addToolBarIcon(self.action)
-        self.iface.addPluginToMenu("&ogr2kml", self.action)
+        self.iface.addPluginToMenu("&qgis2kml", self.action)
 
         # connect to signal renderComplete which is emitted when canvas rendering is done
         #QObject.connect(self.iface.mapCanvas(), SIGNAL("renderComplete(QPainter *)"), self.renderTest)
 
     def unload(self):
         # remove the plugin menu item and icon
-        self.iface.removePluginMenu("&ogr2kml",self.action)
+        self.iface.removePluginMenu("&qgis2kml",self.action)
         self.iface.removeToolBarIcon(self.action)
         
         # disconnect form signal of the canvas
@@ -44,7 +44,7 @@ class OGR2KML:
         
     def run(self):
         # create and show a configuration dialog or something similar
-        self.dlg = ogr2kmlDialog()
+        self.dlg = qgis2kmlDialog()
         #select directory where save files
         QObject.connect(self.dlg.ui.browseButton, SIGNAL("clicked()"), self.SelectKmlDir)
         #load layer
@@ -78,7 +78,7 @@ class OGR2KML:
             # define actual layer
             layer = self.mapCanvas.layer(i)
             #check if is a vector (TODO remove when support also other type)
-            if layer.type() == layer.VectorLayer and layer.geometryType() == 0:
+            if layer.type() == layer.VectorLayer and layer.geometryType() != 2:
                 nameFields = fieldsName(layer)
                 self.layers[layer] = nameFields
                 #this is for remove "layerid=*" when use "Unique Value" symbology
@@ -133,12 +133,34 @@ class OGR2KML:
             ("It is not possible to write into folder '%s'" % mydir), QMessageBox.Ok, 
             QMessageBox.Ok)
 
+    def kmlStyle(self,st,fe,geot,at=None):
+        """Create the style of feature"""
+        if geot == 0:
+            size = 'size'
+        if geot == 1:
+            size = 'lineWidth'
+        if st.output['type'] == 'singleSymbol':
+            fe.style.iconstyle.color = st.output['fillcolor']
+            fe.style.iconstyle.scale = st.output[size]
+        if st.output['type'] == 'categorizedSymbol':
+            attr = unicode(at)
+            fe.style.iconstyle.color = st.output[attr]['fillcolor']
+            fe.style.iconstyle.scale = st.output[attr][size]
+        if st.output['type'] == 'graduatedSymbol':
+            attr = float(unicode(at))
+            for i in range(len(st.ranges)):
+                nl = 'symb%i' % i
+                if attr < st.output[nl]['max'] and attr >= st.output[nl]['min']:
+                    fe.st.iconstyle.color = st.output[nl]['fillcolor']
+                    fe.st.iconstyle.scale = st.output[nl][size]
+                    break        
+            
     def WriteKML(self):           
         for layer, fields in self.layers.iteritems():
             # create kml for layer
             kml = simplekml.Kml(open=1)
             # create style
-            style = ogr2kmlClassStyle(layer)
+            style = qgis2kmlClassStyle(layer)
             provider = layer.dataProvider()
             #set coordinate system of my first vector
             SrsSrc = provider.crs()
@@ -146,44 +168,44 @@ class OGR2KML:
             SrsDest = QgsCoordinateReferenceSystem(4326)
             #trasform
             SrsTrasform = QgsCoordinateTransform(SrsSrc, SrsDest)
-            feat = QgsFeature()
+            qgisFeat = QgsFeature()
             allAttrs = provider.attributeIndexes()
             provider.select(allAttrs)
             if style.output['type'] != 'singleSymbol':
                 idf = idField(layer,style.nameField)
-            while provider.nextFeature(feat):
-                pnt = kml.newpoint()
-                geom = feat.geometry()
-                attrs = feat.attributeMap()
+            while provider.nextFeature(qgisFeat):
+                geom = qgisFeat.geometry()
+                attrs = qgisFeat.attributeMap()
                 if layer.geometryType() == 0:
+                    feat = kml.newpoint()
                     new_geom = SrsTrasform.transform(geom.asPoint())
                     x = float(new_geom.x())
                     y = float(new_geom.y())
-                    pnt.coords = [(x, y)]
-                    if style.output['type'] == 'singleSymbol':
-                        pnt.style.iconstyle.color = style.output['fillcolor']
-                        pnt.style.iconstyle.scale = style.output['size']
-                    if style.output['type'] == 'categorizedSymbol':
-                        attr = unicode(attrs[idf].toString())
-                        pnt.style.iconstyle.color = style.output[attr]['fillcolor']
-                        pnt.style.iconstyle.scale = style.output[attr]['size']
-                    if style.output['type'] == 'graduatedSymbol':
-                        attr = float(unicode(attrs[idf].toString()))
-                        for i in range(len(style.ranges)):
-                            nl = 'symb%i' % i
-                            if attr < style.output[nl]['max'] and attr >= style.output[nl]['min']:
-                                pnt.style.iconstyle.color = style.output[nl]['fillcolor']
-                                pnt.style.iconstyle.scale = style.output[nl]['size']
-                                break
-                    pnt.style.iconstyle.icon = None   
+                    feat.coords = [(x, y)]
+                    if style.output['type'] != 'singleSymbol':
+                        self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                    else:
+                        self.kmlStyle(style,feat,layer.geometryType())
+                    feat.style.iconstyle.icon = None
+                elif layer.geometryType() == 1:
+                    feat = kml.newlinestring()
+                    line = []
+                    for g in qgisFeat.geometry().asPolyline():
+                        line.append(SrsTrasform.transform(g))
+                    feat.coords = line
+                    if style.output['type'] != 'singleSymbol':
+                        self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                    else:
+                        self.kmlStyle(style,feat,layer.geometryType())                   
+                        
                 if self.dlg.ui.nameTableItem.currentIndex() != 0:
                     n = attrs[self.dlg.ui.nameTableItem.currentIndex()-1].toString()
                     if n:
-                        pnt.name = n 
+                        feat.name = n 
                 if self.dlg.ui.descTableItem.currentIndex() != 0:
                     d = attrs[self.dlg.ui.descTableItem.currentIndex()-1].toString()
                     if d:
-                        pnt.description = d
+                        feat.description = d
             
             if self.dlg.ui.outputFormCombo.currentIndex() == 0:
                 kml.save(os.path.join(str(self.dlg.ui.kmldirpath.text()),

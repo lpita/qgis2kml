@@ -1,5 +1,5 @@
 def name():
-  return "ogr2kml"
+  return "qgis2kml"
 
 def description():
   return "This plugin convert a vector file loaded into QGIS to kml with style"
@@ -15,5 +15,5 @@ def authorName():
 
 def classFactory(iface):
   # load TestPlugin class from file testplugin.py
-  from ogr2kml import OGR2KML
-  return OGR2KML(iface)
+  from qgis2kml import QGIS2KML
+  return QGIS2KML(iface)

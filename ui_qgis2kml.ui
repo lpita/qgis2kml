@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ogr2kml</class>
- <widget class="QDialog" name="ogr2kml">
+ <class>qgis2kml</class>
+ <widget class="QDialog" name="qgis2kml">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -110,7 +110,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap resource="resources.qrc">:/plugins/ogr2kml/icon.png</pixmap>
+       <pixmap resource="resources.qrc">:/plugins/qgis2kml/icon.png</pixmap>
       </property>
       <property name="scaledContents">
        <bool>false</bool>
@@ -188,7 +188,7 @@ p, li { white-space: pre-wrap; }
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>ogr2kml</receiver>
+   <receiver>qgis2kml</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -204,7 +204,7 @@ p, li { white-space: pre-wrap; }
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>ogr2kml</receiver>
+   <receiver>qgis2kml</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
