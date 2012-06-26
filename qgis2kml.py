@@ -153,7 +153,8 @@ class QGIS2KML:
                 if attr < st.output[nl]['max'] and attr >= st.output[nl]['min']:
                     fe.st.iconstyle.color = st.output[nl]['fillcolor']
                     fe.st.iconstyle.scale = st.output[nl][size]
-                    break        
+                    break
+        fe.style.iconstyle.icon = None
             
     def WriteKML(self):           
         for layer, fields in self.layers.iteritems():
@@ -186,7 +187,6 @@ class QGIS2KML:
                         self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
                     else:
                         self.kmlStyle(style,feat,layer.geometryType())
-                    feat.style.iconstyle.icon = None
                 elif layer.geometryType() == 1:
                     feat = kml.newlinestring()
                     line = []
