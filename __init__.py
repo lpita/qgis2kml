@@ -5,7 +5,7 @@ def description():
   return "This plugin convert a vector file loaded into QGIS to kml with style"
 
 def version():
-  return "Version 0.1"
+  return "Version 0.2"
 
 def qgisMinimumVersion():
   return "1.8"
