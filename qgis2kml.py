@@ -78,7 +78,7 @@ class QGIS2KML:
             # define actual layer
             layer = self.mapCanvas.layer(i)
             #check if is a vector (TODO remove when support also other type)
-            if layer.type() == layer.VectorLayer and layer.geometryType() != 2:
+            if layer.type() == layer.VectorLayer:
                 nameFields = fieldsName(layer)
                 self.layers[layer] = nameFields
                 #this is for remove "layerid=*" when use "Unique Value" symbology
@@ -88,15 +88,15 @@ class QGIS2KML:
                 item = QTableWidgetItem(source)
                 self.dlg.ui.tablelayers.setItem(n_layer,0, item)
                 #
-                self.dlg.ui.nameTableItem = QComboBox()
-                self.dlg.ui.nameTableItem.addItem('No Name field')
-                self.dlg.ui.descTableItem = QComboBox()
-                self.dlg.ui.descTableItem.addItem('No Desc field')
+                nameTableItem = QComboBox()
+                nameTableItem.addItem('No Name field')
+                descTableItem = QComboBox()
+                descTableItem.addItem('No Desc field')
                 for f in nameFields:
-                    self.dlg.ui.nameTableItem.addItem(f)
-                    self.dlg.ui.descTableItem.addItem(f)
-                self.dlg.ui.tablelayers.setCellWidget(n_layer,1, self.dlg.ui.nameTableItem)
-                self.dlg.ui.tablelayers.setCellWidget(n_layer,2, self.dlg.ui.descTableItem)
+                    nameTableItem.addItem(f)
+                    descTableItem.addItem(f)
+                self.dlg.ui.tablelayers.setCellWidget(n_layer,1, nameTableItem)
+                self.dlg.ui.tablelayers.setCellWidget(n_layer,2, descTableItem)
                 n_layer += 1
         self.dlg.ui.tablelayers.resizeColumnsToContents()
         #button for start the plugin
@@ -156,8 +156,17 @@ class QGIS2KML:
                     break
         fe.style.iconstyle.icon = None
             
-    def WriteKML(self):           
+    def WriteKML(self):
+        nrow = 0
         for layer, fields in self.layers.iteritems():
+            if layer.geometryType() > 3:
+                QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
+                ("Format not yet supported"), QMessageBox.Ok, QMessageBox.Ok)
+            source = layer.source()
+            source.remove(QRegExp('\|layerid=[\d]+$'))
+            if source != self.dlg.ui.tablelayers.item(nrow,0).text():
+                QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
+                ("An error occur with vector: %s" % layer.name), QMessageBox.Ok, QMessageBox.Ok)
             # create kml for layer
             kml = simplekml.Kml(open=1)
             # create style
@@ -177,7 +186,7 @@ class QGIS2KML:
             while provider.nextFeature(qgisFeat):
                 geom = qgisFeat.geometry()
                 attrs = qgisFeat.attributeMap()
-                if layer.geometryType() == 0:
+                if geom.wkbType() == QGis.Point:
                     feat = kml.newpoint()
                     new_geom = SrsTrasform.transform(geom.asPoint())
                     x = float(new_geom.x())
@@ -187,7 +196,7 @@ class QGIS2KML:
                         self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
                     else:
                         self.kmlStyle(style,feat,layer.geometryType())
-                elif layer.geometryType() == 1:
+                elif geom.wkbType() == QGis.Line:
                     feat = kml.newlinestring()
                     line = []
                     for g in qgisFeat.geometry().asPolyline():
@@ -196,16 +205,49 @@ class QGIS2KML:
                     if style.output['type'] != 'singleSymbol':
                         self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
                     else:
-                        self.kmlStyle(style,feat,layer.geometryType())                   
-                        
-                if self.dlg.ui.nameTableItem.currentIndex() != 0:
-                    n = attrs[self.dlg.ui.nameTableItem.currentIndex()-1].toString()
+                        self.kmlStyle(style,feat,layer.geometryType())
+                elif geom.wkbType() == QGis.Polygon:
+                    feat = kml.newpolygon()
+                    poly = []
+                    for g in qgisFeat.geometry().asPolygon():
+                        poly.append(SrsTrasform.transform(g))
+                    feat.outerboundaryis = poly
+                    if style.output['type'] != 'singleSymbol':
+                        self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                    else:
+                        self.kmlStyle(style,feat,layer.geometryType())
+                #elif geom.wkbType() == 6:
+                    #feat = kml.newlinestring()
+                    #inpoly = []
+                    #outpoly = []
+                    #wkbgeom = qgisFeat.geometry().asMultiPolygon()[0]
+                    #for pol in wkbgeom:
+                        #QgsGeometry.fromPoint(
+                        #outpoly.append(SrsTrasform.transform(g))
+                    #for g in wkbgeom[0][1]:
+                        #inpoly.append(SrsTrasform.transform(g))                        
+                    #feat.outerboundaryis = outpoly
+                    #feat.innerboundaryis = inpoly
+                    #if style.output['type'] != 'singleSymbol':
+                        #self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                    #else:
+                        #self.kmlStyle(style,feat,layer.geometryType())
+                    
+                #if self.dlg.ui.nameTableItem.currentIndex() != 0:
+                print self.dlg.ui.tablelayers, nrow
+                nid = self.dlg.ui.tablelayers.cellWidget(nrow,1)
+                print "nid = %s" % str(nid.currentIndex()),
+                if nid != 0:
+                    n = attrs[nid.currentIndex()-1].toString()
                     if n:
-                        feat.name = n 
-                if self.dlg.ui.descTableItem.currentIndex() != 0:
-                    d = attrs[self.dlg.ui.descTableItem.currentIndex()-1].toString()
+                        feat.name = n
+                did = self.dlg.ui.tablelayers.cellWidget(nrow,2)
+                print "did = %s" % str(did.currentIndex()),
+                if did != 0:
+                    d = attrs[did.currentIndex()-1].toString()
                     if d:
                         feat.description = d
+                nrow += 1
             
             if self.dlg.ui.outputFormCombo.currentIndex() == 0:
                 kml.save(os.path.join(str(self.dlg.ui.kmldirpath.text()),

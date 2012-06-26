@@ -76,7 +76,7 @@ class qgis2kmlClassStyle:
         style = dictV2(symbol.symbolLayer(0).properties())
         #set fill color
         fillColor = style['color']
-        self.output['fillcolor'] = self.rgb_to_hex(fillColor)
+        self.output['fillcolor'] = self.rgb_to_hex(fillColor.split(','))
         #javascript code
         #if is point geometry add the point size
         if self.typeGeom == 0:
