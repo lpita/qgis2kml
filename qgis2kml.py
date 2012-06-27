@@ -135,9 +135,9 @@ class QGIS2KML:
 
     def kmlStyle(self,st,fe,geot,at=None):
         """Create the style of feature"""
-        if geot == 0:
+        if geot == QGis.WKBPoint:
             size = 'size'
-        if geot == 1:
+        if geot == QGis.WKBLineString or geot == QGis.WKBPolygon:
             size = 'lineWidth'
         if st.output['type'] == 'singleSymbol':
             fe.style.iconstyle.color = st.output['fillcolor']
@@ -151,24 +151,23 @@ class QGIS2KML:
             for i in range(len(st.ranges)):
                 nl = 'symb%i' % i
                 if attr < st.output[nl]['max'] and attr >= st.output[nl]['min']:
-                    fe.st.iconstyle.color = st.output[nl]['fillcolor']
-                    fe.st.iconstyle.scale = st.output[nl][size]
+                    fe.style.iconstyle.color = st.output[nl]['fillcolor']
+                    fe.style.iconstyle.scale = st.output[nl][size]
                     break
-        fe.style.iconstyle.icon = None
             
     def WriteKML(self):
         nrow = 0
         for layer, fields in self.layers.iteritems():
-            if layer.geometryType() > 3:
+            if layer.geometryType() > QGis.WKBPolygon:
                 QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
-                ("Format not yet supported"), QMessageBox.Ok, QMessageBox.Ok)
+                ("Layer %s: format not yet supported" % layer.name()), QMessageBox.Ok, QMessageBox.Ok)
             source = layer.source()
             source.remove(QRegExp('\|layerid=[\d]+$'))
             if source != self.dlg.ui.tablelayers.item(nrow,0).text():
                 QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
-                ("An error occur with vector: %s" % layer.name), QMessageBox.Ok, QMessageBox.Ok)
+                ("An error occur with vector: %s" % layer.name()), QMessageBox.Ok, QMessageBox.Ok)
             # create kml for layer
-            kml = simplekml.Kml(open=1)
+            kml = simplekml.Kml(open=1,name=layer.name())
             # create style
             style = qgis2kmlClassStyle(layer)
             provider = layer.dataProvider()
@@ -186,37 +185,44 @@ class QGIS2KML:
             while provider.nextFeature(qgisFeat):
                 geom = qgisFeat.geometry()
                 attrs = qgisFeat.attributeMap()
-                if geom.wkbType() == QGis.Point:
+                print geom.wkbType()
+                if geom.wkbType() == QGis.WKBPoint:
                     feat = kml.newpoint()
                     new_geom = SrsTrasform.transform(geom.asPoint())
                     x = float(new_geom.x())
                     y = float(new_geom.y())
                     feat.coords = [(x, y)]
                     if style.output['type'] != 'singleSymbol':
-                        self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                        self.kmlStyle(style,feat,geom.wkbType(),attrs[idf].toString())
                     else:
-                        self.kmlStyle(style,feat,layer.geometryType())
-                elif geom.wkbType() == QGis.Line:
+                        self.kmlStyle(style,feat,geom.wkbType())
+                elif geom.wkbType() == QGis.WKBLineString:
                     feat = kml.newlinestring()
                     line = []
                     for g in qgisFeat.geometry().asPolyline():
                         line.append(SrsTrasform.transform(g))
                     feat.coords = line
                     if style.output['type'] != 'singleSymbol':
-                        self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                        self.kmlStyle(style,feat,geom.wkbType(),attrs[idf].toString())
                     else:
-                        self.kmlStyle(style,feat,layer.geometryType())
-                elif geom.wkbType() == QGis.Polygon:
+                        self.kmlStyle(style,feat,geom.wkbType())
+                elif geom.wkbType() == QGis.WKBPolygon:
                     feat = kml.newpolygon()
-                    poly = []
+                    polys = []
                     for g in qgisFeat.geometry().asPolygon():
-                        poly.append(SrsTrasform.transform(g))
-                    feat.outerboundaryis = poly
+                        poly = []
+                        for p in g:
+                            poly.append(SrsTrasform.transform(p))
+                        polys.append(poly)
+                    feat.innerboundaryis = polys
+                    #feat.outerboundaryis = polys
                     if style.output['type'] != 'singleSymbol':
-                        self.kmlStyle(style,feat,layer.geometryType(),attrs[idf].toString())
+                        self.kmlStyle(style,feat,geom.wkbType(),attrs[idf].toString())
                     else:
-                        self.kmlStyle(style,feat,layer.geometryType())
-                #elif geom.wkbType() == 6:
+                        self.kmlStyle(style,feat,geom.wkbType())
+                else:
+                    continue
+                #elif geom.wkbType() == QGis.WKBMultiPolygon:
                     #feat = kml.newlinestring()
                     #inpoly = []
                     #outpoly = []
@@ -234,25 +240,21 @@ class QGIS2KML:
                         #self.kmlStyle(style,feat,layer.geometryType())
                     
                 #if self.dlg.ui.nameTableItem.currentIndex() != 0:
-                print self.dlg.ui.tablelayers, nrow
-                nid = self.dlg.ui.tablelayers.cellWidget(nrow,1)
-                print "nid = %s" % str(nid.currentIndex()),
+                nid = self.dlg.ui.tablelayers.cellWidget(nrow,1).currentIndex()
                 if nid != 0:
-                    n = attrs[nid.currentIndex()-1].toString()
+                    n = attrs[nid-1].toString()
                     if n:
                         feat.name = n
-                did = self.dlg.ui.tablelayers.cellWidget(nrow,2)
-                print "did = %s" % str(did.currentIndex()),
+                did = self.dlg.ui.tablelayers.cellWidget(nrow,2).currentIndex()
                 if did != 0:
-                    d = attrs[did.currentIndex()-1].toString()
+                    d = attrs[did-1].toString()
                     if d:
                         feat.description = d
-                nrow += 1
-            
+
             if self.dlg.ui.outputFormCombo.currentIndex() == 0:
                 kml.save(os.path.join(str(self.dlg.ui.kmldirpath.text()),
                         '%s.kml' % layer.name()))
             elif self.dlg.ui.outputFormCombo.currentIndex() == 1:
                 kml.savekmz(os.path.join(str(self.dlg.ui.kmldirpath.text()),
                         '%s.kmz' % layer.name()))
-            
+            nrow += 1
