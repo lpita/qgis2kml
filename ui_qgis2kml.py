@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_qgis2kml.ui'
 #
-# Created: Tue Jun 26 21:38:50 2012
+# Created: Fri Jun 29 11:40:22 2012
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,14 +17,14 @@ except AttributeError:
 class Ui_qgis2kml(object):
     def setupUi(self, qgis2kml):
         qgis2kml.setObjectName(_fromUtf8("qgis2kml"))
-        qgis2kml.resize(511, 346)
+        qgis2kml.resize(511, 359)
         self.buttonBox = QtGui.QDialogButtonBox(qgis2kml)
-        self.buttonBox.setGeometry(QtCore.QRect(160, 310, 341, 32))
+        self.buttonBox.setGeometry(QtCore.QRect(160, 320, 341, 32))
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
         self.buttonBox.setObjectName(_fromUtf8("buttonBox"))
         self.layoutWidget = QtGui.QWidget(qgis2kml)
-        self.layoutWidget.setGeometry(QtCore.QRect(10, 280, 491, 28))
+        self.layoutWidget.setGeometry(QtCore.QRect(10, 290, 491, 28))
         self.layoutWidget.setObjectName(_fromUtf8("layoutWidget"))
         self.horizontalLayout_3 = QtGui.QHBoxLayout(self.layoutWidget)
         self.horizontalLayout_3.setMargin(0)
@@ -84,7 +84,7 @@ class Ui_qgis2kml(object):
         self.verticalLayout.addWidget(self.label_5)
         self.horizontalLayout.addLayout(self.verticalLayout)
         self.tablelayers = QtGui.QTableWidget(qgis2kml)
-        self.tablelayers.setGeometry(QtCore.QRect(10, 120, 491, 151))
+        self.tablelayers.setGeometry(QtCore.QRect(10, 120, 491, 141))
         self.tablelayers.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.tablelayers.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.tablelayers.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerItem)
@@ -92,6 +92,9 @@ class Ui_qgis2kml(object):
         self.tablelayers.setColumnCount(0)
         self.tablelayers.setRowCount(0)
         self.tablelayers.verticalHeader().setVisible(False)
+        self.checkBox = QtGui.QCheckBox(qgis2kml)
+        self.checkBox.setGeometry(QtCore.QRect(10, 270, 501, 19))
+        self.checkBox.setObjectName(_fromUtf8("checkBox"))
 
         self.retranslateUi(qgis2kml)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("accepted()")), qgis2kml.accept)
@@ -111,5 +114,6 @@ class Ui_qgis2kml(object):
 "</style></head><body style=\" font-family:\'Trebuchet MS\'; font-size:14pt; font-weight:600; font-style:normal;\">\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\">qgis2kml</p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.label_5.setText(QtGui.QApplication.translate("qgis2kml", "Export active layers to KML/KMZ consider the style of layer", None, QtGui.QApplication.UnicodeUTF8))
+        self.checkBox.setText(QtGui.QApplication.translate("qgis2kml", "Use icon (print symbol as image, this option return only KMZ)", None, QtGui.QApplication.UnicodeUTF8))
 
 import resources_rc
