@@ -24,16 +24,31 @@ from qgis.core import *
 
 import os, sys
 import os2emxpath
+import shutil
+
+currentPath = os.path.dirname( __file__ )
+sys.path.append( os.path.abspath(currentPath))
+
+import simplekml
 
 from qgis2funz import *
 
 class qgis2kmlClassStyle:
     """A class to create style of layer and the relative code"""
     def __init__(self,
-                  layer
+                  layer,
+                  icon,
+                  path
                 ):
         #qgis layer
         self.layer = layer
+        #set icon variable
+        self.icon = icon
+        self.path = os.path.join(path,'symbols_%s' % self.layer.name())
+        if self.icon:
+            if os.path.exists(self.path):
+                shutil.rmtree(self.path)
+            os.mkdir(self.path)
         # layer geometry type
         self.typeGeom = self.layer.geometryType()
         #layer name
@@ -72,40 +87,67 @@ class qgis2kmlClassStyle:
     def singleSymbol2(self):
         """Return the javascript code for single symbology"""
         symbol = self.renderer.symbol()
+        if self.icon:
+            image = symbol.bigSymbolPreviewImage()
+            imageName = os.path.join(self.path,'symbol.png')
+            image.save(imageName,'png')
         self.checkSymbol2(symbol)
         style = dictV2(symbol.symbolLayer(0).properties())
         #set fill color
-        fillColor = style['color']
-        self.output['fillcolor'] = self.rgb_to_hex(fillColor.split(','))
+        color = self.rgb_to_hex(style['color'].split(','))
         #javascript code
+        self.output['style'] = simplekml.Style()        
         #if is point geometry add the point size
         if self.typeGeom == 0:
-            self.output['size'] = style['size']
+            if self.icon:
+                kmlIcon = simplekml.Icon()
+                kmlIcon.href = os.path.join('.','symbols_%s' % self.layer.name(),
+                                            'symbol.png')
+                self.output['style'].iconstyle.icon = kmlIcon
+            else:
+                self.output['style'].iconstyle.color = color
+                self.output['style'].iconstyle.scale = style['size']               
         elif self.typeGeom == 1:
-            self.output['lineWidth'] = style['width']
+            self.output['style'].linestyle.color = color
+            self.output['style'].linestyle.width = style['width']
         elif self.typeGeom == 2:
             #set stroke color
-            self.output['lineWidth'] = style['width_border']
-        self.output
+            self.output['style'].polystyle.color = color
+            self.output['style'].polystyle.outline = style['width_border']
+            
 
     def uniqueVal2(self):
         """Return the javascript code for unique values symbology"""
         styleMap = self.renderer.categories()
         for cat in styleMap:
+            # TODO fix for non UTF8 character
+            #z = str(cat.value().toString().toUtf8())
             z = unicode(cat.value().toString())
             self.output[z] = {}
+            self.output[z]['style'] = simplekml.Style()
             symbol = cat.symbol()
+            if self.icon:
+                image = symbol.bigSymbolPreviewImage()
+                imageName = os.path.join(self.path,'%s.png' % z)
+                image.save(imageName,'png')
             self.checkSymbol2(symbol)
             style = dictV2(symbol.symbolLayer(0).properties())
+            color = self.rgb_to_hex(style['color'].split(','))            
             if self.typeGeom == 0:
-                self.output[z]['size'] = style['size']
+                if self.icon:
+                    kmlIcon = simplekml.Icon()
+                    kmlIcon.href = os.path.join('.','symbols_%s' % self.layer.name(),
+                                                '%s.png' % z)
+                    self.output[z]['style'].iconstyle.icon = kmlIcon
+                else:
+                    self.output[z]['style'].iconstyle.color = color
+                    self.output[z]['style'].iconstyle.scale = style['size']
             elif self.typeGeom == 1:
-                self.output[z]['lineWidth'] = style['width']
+                self.output[z]['style'].linestyle.color = color
+                self.output[z]['style'].linestyle.width = style['width']
             elif self.typeGeom == 2:
-                #set stroke color
-                self.output[z]['lineWidth'] = style['width_border']
-            fillColor = style['color']
-            self.output[z]['fillcolor'] = self.rgb_to_hex(fillColor.split(','))
+                self.output[z]['style'].polystyle.outline = style['width_border']
+                self.output[z]['style'].polystyle.color = color
 
     def gradSymbol2(self):
         """Return the javascript code for graduated symbology"""
@@ -114,27 +156,40 @@ class qgis2kmlClassStyle:
         value = 0
         # the higher number od styleMap
         for i in range(len(symbolsGrad)):
+            symbol = symbolsGrad[i]
             nl = 'symb%i' % i
             self.output[nl] = {}
             self.output[nl]['min'] = self.ranges[i].lowerValue()
             self.output[nl]['max'] = self.ranges[i].upperValue()
-            self.checkSymbol2(symbolsGrad[i])
-            style = dictV2(symbolsGrad[i].symbolLayer(0).properties())
-            fillColor = style['color']
-            self.output[nl]['fillcolor'] = self.rgb_to_hex(fillColor.split(','))
+            self.output[nl]['style'] = simplekml.Style()
+            if self.icon:
+                image = symbol.bigSymbolPreviewImage()
+                imageName = os.path.join(self.path,'%s.png' % nl)
+                image.save(imageName,'png')
+            self.checkSymbol2(symbol)
+            style = dictV2(symbol.symbolLayer(0).properties())
+            color = self.rgb_to_hex(style['color'].split(','))
             if self.typeGeom == 0:
-                self.output[nl]['size'] = style['size']
+                if self.icon:
+                    kmlIcon = simplekml.Icon()
+                    kmlIcon.href = os.path.join('.','symbols_%s' % self.layer.name(),
+                                                '%s.png' % nl)
+                    self.output[nl]['style'].iconstyle.icon = kmlIcon
+                else:
+                    self.output[nl]['style'].iconstyle.color = color
+                    self.output[nl]['style'].iconstyle.scale = style['size']
             elif self.typeGeom == 1:
-                self.output[nl]['lineWidth'] = style['width']
+                self.output[nl]['style'].linestyle.color = color
+                self.output[nl]['style'].linestyle.width = style['width']
             elif self.typeGeom == 2:
-                #set stroke color
-                self.output[nl]['lineWidth'] = style['width_border']
+                self.output[nl]['style'].polystyle.outline = style['width_border']
+                self.output[nl]['style'].polystyle.color = color
 
     def checkSymbol2(self,symbol):
         """Check if a symbol has some problem for OpenLayers style"""
         #check how many symbols there are in a symbolset
         if symbol.symbolLayerCount() != 1:
-            self.log += "WARNING: OGR2Layers support only a layer of the new symbology. "
+            self.log += "WARNING: qgis2kml support only a layer of the new symbology. "
             self.log += "         On vector <b>%s</b>, style type %s, first symbol is used <br />" % (
                         self.name, self.typeRend)
 

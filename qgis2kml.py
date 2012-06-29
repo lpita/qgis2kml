@@ -8,10 +8,11 @@ from qgis2funz import *
 import resources_rc
 import os
 import sys
+import zipfile
+import shutil
 
 currentPath = os.path.dirname( __file__ )
 sys.path.append( os.path.abspath(currentPath))
-
 import simplekml
 
 class QGIS2KML:
@@ -135,29 +136,30 @@ class QGIS2KML:
 
     def kmlStyle(self,st,fe,geot,at=None):
         """Create the style of feature"""
-        if geot == QGis.WKBPoint:
-            size = 'size'
-        if geot == QGis.WKBLineString or geot == QGis.WKBPolygon:
-            size = 'lineWidth'
         if st.output['type'] == 'singleSymbol':
-            fe.style.iconstyle.color = st.output['fillcolor']
-            fe.style.iconstyle.scale = st.output[size]
+            fe.style = st.output['style']
         if st.output['type'] == 'categorizedSymbol':
             attr = unicode(at)
-            fe.style.iconstyle.color = st.output[attr]['fillcolor']
-            fe.style.iconstyle.scale = st.output[attr][size]
+            fe.style = st.output[attr]['style']
         if st.output['type'] == 'graduatedSymbol':
             attr = float(unicode(at))
             for i in range(len(st.ranges)):
                 nl = 'symb%i' % i
-                if attr < st.output[nl]['max'] and attr >= st.output[nl]['min']:
-                    fe.style.iconstyle.color = st.output[nl]['fillcolor']
-                    fe.style.iconstyle.scale = st.output[nl][size]
+                if attr <= st.output[nl]['max'] and attr >= st.output[nl]['min']:
+                    fe.style = st.output[nl]['style']
                     break
+        if not self.icon:
+            fe.style.iconstyle.icon = None
             
     def WriteKML(self):
         nrow = 0
+        outPath = str(self.dlg.ui.kmldirpath.text())  
+        if self.dlg.ui.checkBox.isChecked():
+            self.icon = True
+        else:
+            self.icon = False
         for layer, fields in self.layers.iteritems():
+            outFormat = self.dlg.ui.outputFormCombo.currentIndex()            
             if layer.geometryType() > QGis.WKBPolygon:
                 QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
                 ("Layer %s: format not yet supported" % layer.name()), QMessageBox.Ok, QMessageBox.Ok)
@@ -167,9 +169,14 @@ class QGIS2KML:
                 QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
                 ("An error occur with vector: %s" % layer.name()), QMessageBox.Ok, QMessageBox.Ok)
             # create kml for layer
-            kml = simplekml.Kml(open=1,name=layer.name())
+            kml = simplekml.Kml(name=layer.name())
+            folder = kml.newfolder(name=layer.name())
             # create style
-            style = qgis2kmlClassStyle(layer)
+            if layer.geometryType() != 0:
+                self.icon = False
+            if self.icon:
+                outFormat = 1
+            style = qgis2kmlClassStyle(layer,self.icon,outPath)
             provider = layer.dataProvider()
             #set coordinate system of my first vector
             SrsSrc = provider.crs()
@@ -185,9 +192,8 @@ class QGIS2KML:
             while provider.nextFeature(qgisFeat):
                 geom = qgisFeat.geometry()
                 attrs = qgisFeat.attributeMap()
-                print geom.wkbType()
                 if geom.wkbType() == QGis.WKBPoint:
-                    feat = kml.newpoint()
+                    feat = folder.newpoint()
                     new_geom = SrsTrasform.transform(geom.asPoint())
                     x = float(new_geom.x())
                     y = float(new_geom.y())
@@ -197,7 +203,7 @@ class QGIS2KML:
                     else:
                         self.kmlStyle(style,feat,geom.wkbType())
                 elif geom.wkbType() == QGis.WKBLineString:
-                    feat = kml.newlinestring()
+                    feat = folder.newlinestring()
                     line = []
                     for g in qgisFeat.geometry().asPolyline():
                         line.append(SrsTrasform.transform(g))
@@ -207,7 +213,7 @@ class QGIS2KML:
                     else:
                         self.kmlStyle(style,feat,geom.wkbType())
                 elif geom.wkbType() == QGis.WKBPolygon:
-                    feat = kml.newpolygon()
+                    feat = folder.newpolygon()
                     polys = []
                     for g in qgisFeat.geometry().asPolygon():
                         poly = []
@@ -251,10 +257,19 @@ class QGIS2KML:
                     if d:
                         feat.description = d
 
-            if self.dlg.ui.outputFormCombo.currentIndex() == 0:
-                kml.save(os.path.join(str(self.dlg.ui.kmldirpath.text()),
+            if outFormat == 0:
+                kml.save(os.path.join(outPath,
                         '%s.kml' % layer.name()))
-            elif self.dlg.ui.outputFormCombo.currentIndex() == 1:
-                kml.savekmz(os.path.join(str(self.dlg.ui.kmldirpath.text()),
-                        '%s.kmz' % layer.name()))
+            elif outFormat == 1:
+                outName = os.path.join(outPath, '%s.kmz' % layer.name())
+                kml.savekmz(outName)
+                if self.icon:
+                    zf = zipfile.ZipFile(outName,mode='a')
+                    for f in os.listdir(style.path): 
+                        oldF = os.path.join(style.path,f)
+                        newF = os.path.join('symbols_%s' % layer.name(),f)
+                        zf.write(oldF,newF)
+                    zf.close()
+                    #shutil.rmtree(style.path)
+                    
             nrow += 1
