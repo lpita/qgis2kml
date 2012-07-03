@@ -8,7 +8,7 @@ def version():
   return "Version 0.2"
 
 def qgisMinimumVersion():
-  return "1.8"
+  return "1.7"
 
 def authorName():
   return "Luca Delucchi"
