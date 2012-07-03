@@ -160,7 +160,7 @@ class QGIS2KML:
             self.icon = False
         for layer, fields in self.layers.iteritems():
             outFormat = self.dlg.ui.outputFormCombo.currentIndex()            
-            if layer.geometryType() > QGis.WKBPolygon:
+            if layer.geometryType() > 0:
                 QMessageBox.warning(self.iface.mainWindow(), self.MSG_BOX_TITLE, 
                 ("Layer %s: format not yet supported" % layer.name()), QMessageBox.Ok, QMessageBox.Ok)
             source = layer.source()

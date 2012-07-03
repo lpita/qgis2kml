@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_qgis2kml.ui'
 #
-# Created: Fri Jun 29 11:40:22 2012
+# Created: Tue Jul  3 23:29:28 2012
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -94,6 +94,9 @@ class Ui_qgis2kml(object):
         self.tablelayers.verticalHeader().setVisible(False)
         self.checkBox = QtGui.QCheckBox(qgis2kml)
         self.checkBox.setGeometry(QtCore.QRect(10, 270, 501, 19))
+        self.checkBox.setCheckable(True)
+        self.checkBox.setChecked(True)
+        self.checkBox.setAutoRepeat(False)
         self.checkBox.setObjectName(_fromUtf8("checkBox"))
 
         self.retranslateUi(qgis2kml)

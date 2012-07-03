@@ -192,6 +192,15 @@ p, li { white-space: pre-wrap; }
    <property name="text">
     <string>Use icon (print symbol as image, this option return only KMZ)</string>
    </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="autoRepeat">
+    <bool>false</bool>
+   </property>
   </widget>
  </widget>
  <resources>

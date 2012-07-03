@@ -114,7 +114,8 @@ class qgis2kmlClassStyle:
             #set stroke color
             self.output['style'].polystyle.color = color
             self.output['style'].polystyle.outline = style['width_border']
-            
+            #TODO add alpha color
+            self.output['style'].polystyle.outline = style['width_border']
 
     def uniqueVal2(self):
         """Return the javascript code for unique values symbology"""
@@ -146,8 +147,12 @@ class qgis2kmlClassStyle:
                 self.output[z]['style'].linestyle.color = color
                 self.output[z]['style'].linestyle.width = style['width']
             elif self.typeGeom == 2:
-                self.output[z]['style'].polystyle.outline = style['width_border']
+                if float(style['width_border']) > 0.0:
+                    self.output[z]['style'].polystyle.outline = 1
+                else:
+                    self.output[z]['style'].polystyle.outline = 0
                 self.output[z]['style'].polystyle.color = color
+                self.output[z]['style'].polystyle.fill = 1
 
     def gradSymbol2(self):
         """Return the javascript code for graduated symbology"""
